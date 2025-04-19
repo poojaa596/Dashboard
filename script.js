@@ -58,19 +58,37 @@ function toggleTheme() {
 }
 
 function updateChartsTheme() {
-  if (dashboardData.charts.barChart) {
-    dashboardData.charts.barChart.options.scales.y.grid.color = dashboardData.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-    dashboardData.charts.barChart.options.scales.y.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
-    dashboardData.charts.barChart.options.scales.x.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
-    dashboardData.charts.barChart.update();
-  }
-  
-  if (dashboardData.charts.lineChart) {
-    dashboardData.charts.lineChart.options.scales.y.grid.color = dashboardData.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-    dashboardData.charts.lineChart.options.scales.y.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
-    dashboardData.charts.lineChart.options.scales.x.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
-    dashboardData.charts.lineChart.update();
-  }
+  Object.entries(dashboardData.charts).forEach(([key, chart]) => {
+    if (!chart) return;
+    
+    // Update colors based on theme
+    if (key === 'barChart') {
+      chart.data.datasets[0].backgroundColor = dashboardData.theme === 'dark' ? '#818cf8' : '#4361ee';
+    }
+    
+    // Update scales colors
+    chart.options.scales = chart.options.scales || {};
+    chart.options.scales.x = chart.options.scales.x || {};
+    chart.options.scales.y = chart.options.scales.y || {};
+    
+    chart.options.scales.y.grid = chart.options.scales.y.grid || {};
+    chart.options.scales.y.ticks = chart.options.scales.y.ticks || {};
+    chart.options.scales.x.ticks = chart.options.scales.x.ticks || {};
+    
+    chart.options.scales.y.grid.color = dashboardData.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    chart.options.scales.y.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
+    chart.options.scales.x.ticks.color = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
+    
+    // Update tooltip colors
+    chart.options.plugins = chart.options.plugins || {};
+    chart.options.plugins.tooltip = chart.options.plugins.tooltip || {};
+    chart.options.plugins.tooltip.backgroundColor = dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff';
+    chart.options.plugins.tooltip.titleColor = dashboardData.theme === 'dark' ? '#ffffff' : '#1f2937';
+    chart.options.plugins.tooltip.bodyColor = dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280';
+    chart.options.plugins.tooltip.borderColor = dashboardData.theme === 'dark' ? '#374151' : '#e5e7eb';
+    
+    chart.update();
+  });
 }
 
 // Section Loading
@@ -129,10 +147,8 @@ function updateActiveNav() {
 }
 
 async function loadAnalyticsSection() {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Generate random data for demo
   const metrics = {
     totalUsers: Math.floor(Math.random() * 5000) + 2000,
     newOrders: Math.floor(Math.random() * 200) + 50,
@@ -184,6 +200,30 @@ async function loadAnalyticsSection() {
         <h3>User Growth</h3>
         <div class="chart-wrapper">
           <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="chart-container">
+        <h3>Sales Distribution</h3>
+        <div class="chart-wrapper">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-container">
+        <h3>Traffic Sources</h3>
+        <div class="chart-wrapper">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="chart-container full-width">
+        <h3>Regional Performance</h3>
+        <div class="chart-wrapper">
+          <canvas id="polarChart"></canvas>
         </div>
       </div>
     </section>
@@ -593,13 +633,10 @@ function initSectionComponents(section) {
 // Initialize charts
 function initCharts() {
   // Destroy existing charts if they exist
-  if (dashboardData.charts.barChart) {
-    dashboardData.charts.barChart.destroy();
-  }
-  if (dashboardData.charts.lineChart) {
-    dashboardData.charts.lineChart.destroy();
-  }
-  
+  Object.values(dashboardData.charts).forEach(chart => {
+    if (chart) chart.destroy();
+  });
+
   // Bar Chart
   const barCtx = document.getElementById('barChart').getContext('2d');
   dashboardData.charts.barChart = new Chart(barCtx, {
@@ -610,10 +647,11 @@ function initCharts() {
         label: 'Sales',
         data: [4500, 5200, 4800, 6200, 7500, 8100],
         backgroundColor: dashboardData.theme === 'dark' ? '#818cf8' : '#4361ee',
-        borderRadius: 4
+        borderRadius: 4,
+        borderWidth: 1
       }]
     },
-    options: getChartOptions('Sales')
+    options: getChartOptions('Sales', true)
   });
   
   // Line Chart
@@ -628,17 +666,111 @@ function initCharts() {
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,
-        tension: 0.3
+        tension: 0.3,
+        borderWidth: 2
       }]
     },
-    options: getChartOptions('Users')
+    options: getChartOptions('Users', true)
+  });
+
+  // Pie Chart
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  dashboardData.charts.pieChart = new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Electronics', 'Clothing', 'Home Goods', 'Books', 'Other'],
+      datasets: [{
+        data: [35, 25, 20, 15, 5],
+        backgroundColor: [
+          '#3b82f6',
+          '#ef4444',
+          '#10b981',
+          '#f59e0b',
+          '#8b5cf6'
+        ],
+        borderWidth: 1,
+        borderColor: dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff'
+      }]
+    },
+    options: getPieChartOptions('Sales Distribution')
+  });
+
+  // Doughnut Chart
+  const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+  dashboardData.charts.doughnutChart = new Chart(doughnutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Desktop', 'Mobile', 'Tablet'],
+      datasets: [{
+        data: [60, 30, 10],
+        backgroundColor: [
+          '#6366f1',
+          '#ec4899',
+          '#f97316'
+        ],
+        borderWidth: 1,
+        borderColor: dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff'
+      }]
+    },
+    options: getPieChartOptions('Traffic Sources')
+  });
+
+  // Polar Area Chart
+  const polarCtx = document.getElementById('polarChart').getContext('2d');
+  dashboardData.charts.polarChart = new Chart(polarCtx, {
+    type: 'polarArea',
+    data: {
+      labels: ['North', 'South', 'East', 'West'],
+      datasets: [{
+        data: [35, 25, 20, 20],
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.7)',
+          'rgba(236, 72, 153, 0.7)',
+          'rgba(16, 185, 129, 0.7)',
+          'rgba(245, 158, 11, 0.7)'
+        ],
+        borderWidth: 1,
+        borderColor: dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff'
+      }]
+    },
+    options: getPieChartOptions('Regional Sales')
   });
 }
 
-function getChartOptions(title) {
+function getChartOptions(title, showLegend = false) {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: showLegend,
+        position: 'bottom',
+        labels: {
+          color: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+          padding: 20,
+          font: {
+            size: 12
+          },
+          boxWidth: 12
+        }
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff',
+        titleColor: dashboardData.theme === 'dark' ? '#ffffff' : '#1f2937',
+        bodyColor: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+        borderColor: dashboardData.theme === 'dark' ? '#374151' : '#e5e7eb',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            return `${context.dataset.label}: ${context.parsed.y?.toLocaleString() || context.raw?.toLocaleString()}`;
+          }
+        }
+      }
+    },
     scales: {
       y: {
         beginAtZero: true,
@@ -646,7 +778,10 @@ function getChartOptions(title) {
           color: dashboardData.theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
         },
         ticks: {
-          color: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280'
+          color: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+          callback: function(value) {
+            return value.toLocaleString();
+          }
         }
       },
       x: {
@@ -658,13 +793,86 @@ function getChartOptions(title) {
         }
       }
     },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    },
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuart'
+    },
+    elements: {
+      point: {
+        radius: 4,
+        hoverRadius: 6,
+        backgroundColor: '#ffffff',
+        borderWidth: 2
+      }
+    }
+  };
+}
+
+function getPieChartOptions(title) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false
+        position: 'bottom',
+        labels: {
+          color: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+          padding: 20,
+          font: {
+            size: 12
+          },
+          boxWidth: 12
+        }
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: dashboardData.theme === 'dark' ? '#1f2937' : '#ffffff',
+        titleColor: dashboardData.theme === 'dark' ? '#ffffff' : '#1f2937',
+        bodyColor: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+        borderColor: dashboardData.theme === 'dark' ? '#374151' : '#e5e7eb',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: true,
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage = Math.round((value / total) * 100);
+            return `${label}: ${value} (${percentage}%)`;
+          }
+        }
       },
       title: {
-        display: false,
-        text: title
+        display: true,
+        text: title,
+        color: dashboardData.theme === 'dark' ? '#d1d5db' : '#6b7280',
+        font: {
+          size: 16,
+          weight: '600'
+        },
+        padding: {
+          bottom: 20
+        }
+      }
+    },
+    cutout: '60%',
+    animation: {
+      animateScale: true,
+      animateRotate: true
+    },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        const chart = elements[0].chart;
+        const label = chart.data.labels[index];
+        const value = chart.data.datasets[0].data[index];
+        alert(`Selected: ${label} - ${value}`);
       }
     }
   };
@@ -725,7 +933,7 @@ function setupEventListeners() {
   // Theme toggle
   dom.themeToggle.addEventListener('click', toggleTheme);
   
-  // Mobile menu toggle - UPDATED
+  // Mobile menu toggle
   dom.mobileMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     dom.sidebar.classList.toggle('active');
